@@ -325,10 +325,10 @@ export const HomeTab: React.FC<HomeTabProps> = ({ user, onNavigate, onOpenAddMod
               </div>
               <div>
                 <h3 className="font-bold text-sm text-slate-900 dark:text-white">
-                  Hỏi đáp Trợ lý AI HanGo
+                  Gia sư AI HanGo thông minh
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Giải nghĩa từ, sửa lỗi câu & dịch chuẩn
+                  Sửa mọi loại câu 9 phần • Ngữ pháp • Dịch thuật
                 </p>
               </div>
             </div>

@@ -15,6 +15,8 @@ import { AddEditVocabularyModal } from './AddEditVocabularyModal';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
 import { ScheduleReviewModal } from './ScheduleReviewModal';
 import { TopikExamModal } from './TopikExamModal';
+import { speechRecognitionService, SpeechEvaluationResult } from '../services/speechRecognition';
+import { CustomVocabFileModal } from './CustomVocabFileModal';
 import confetti from 'canvas-confetti';
 import {
   Search,
@@ -105,6 +107,57 @@ export const StudyTab: React.FC<StudyTabProps> = ({ initialSubTab = 'vocab', onO
   const [quizCurrentIdx, setQuizCurrentIdx] = useState(0);
   const [quizUserAnswers, setQuizUserAnswers] = useState<number[]>([]);
   const [quizTimeLeft, setQuizTimeLeft] = useState(300);
+
+  // Custom Vocab File Modal state
+  const [isCustomVocabFileModalOpen, setIsCustomVocabFileModalOpen] = useState(false);
+
+  // Speech Recognition Pronunciation Check states
+  const [activeRecordingWordId, setActiveRecordingWordId] = useState<string | null>(null);
+  const [evalResults, setEvalResults] = useState<Record<string, SpeechEvaluationResult>>({});
+  const [speechError, setSpeechError] = useState<string | null>(null);
+
+  const handleStartSpeechCheck = (koreanWord: string, wordId: string) => {
+    if (activeRecordingWordId === wordId) {
+      speechRecognitionService.stopListening();
+      setActiveRecordingWordId(null);
+      return;
+    }
+
+    setSpeechError(null);
+    setActiveRecordingWordId(wordId);
+
+    speechRecognitionService.startListening(
+      koreanWord,
+      (result) => {
+        setActiveRecordingWordId(null);
+        setEvalResults((prev) => ({ ...prev, [wordId]: result }));
+        if (result.score >= 85) {
+          try {
+            confetti({
+              particleCount: 50,
+              spread: 60,
+              origin: { y: 0.7 },
+            });
+          } catch {
+            // ignore
+          }
+        }
+      },
+      (err) => {
+        setActiveRecordingWordId(null);
+        setSpeechError(err);
+        setTimeout(() => setSpeechError(null), 5000);
+      },
+      (isListening) => {
+        if (!isListening) setActiveRecordingWordId(null);
+      }
+    );
+  };
+
+  const handleStopSpeechCheck = () => {
+    speechRecognitionService.stopListening();
+    setActiveRecordingWordId(null);
+  };
 
   const refreshVocabs = () => {
     setVocabs(storageService.getVocabularies());
@@ -359,6 +412,20 @@ export const StudyTab: React.FC<StudyTabProps> = ({ initialSubTab = 'vocab', onO
       {/* ================= SECTION 1: 15 CHỦ ĐỀ TỪ VỰNG ================= */}
       {subTab === 'vocab' && (
         <div className="space-y-4 animate-in fade-in duration-200">
+          {/* Speech Error Banner */}
+          {speechError && (
+            <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between">
+              <span>{speechError}</span>
+              <button
+                type="button"
+                onClick={() => setSpeechError(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 ml-2 font-bold"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
           {/* Controls Bar: Search & Action buttons */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             {/* Search */}
@@ -384,6 +451,16 @@ export const StudyTab: React.FC<StudyTabProps> = ({ initialSubTab = 'vocab', onO
             {/* Action buttons */}
             <div className="flex items-center gap-2">
               <button
+                type="button"
+                onClick={() => setIsCustomVocabFileModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-95 text-xs font-bold text-white shadow-md shadow-emerald-600/20 transition cursor-pointer"
+                title="Tải tệp từ vựng (.txt, .csv, .json) để tạo list học Flashcard"
+              >
+                <Layers className="w-4 h-4" />
+                <span>+ Thêm tệp Flashcard</span>
+              </button>
+
+              <button
                 onClick={() => {
                   setEditingItem(null);
                   setIsAddEditOpen(true);
@@ -391,7 +468,7 @@ export const StudyTab: React.FC<StudyTabProps> = ({ initialSubTab = 'vocab', onO
                 className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-xs font-bold text-white shadow-md shadow-blue-600/20 transition cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
-                <span>+ Thêm từ vựng</span>
+                <span>+ Thêm từ</span>
               </button>
 
               <button
@@ -809,15 +886,72 @@ export const StudyTab: React.FC<StudyTabProps> = ({ initialSubTab = 'vocab', onO
                         </p>
                       </div>
 
-                      {/* TTS Speak button */}
-                      <button
-                        onClick={() => handleSpeak(item.korean)}
-                        className="p-2 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/40 dark:hover:bg-blue-900/60 text-blue-600 dark:text-blue-300 transition active:scale-90 cursor-pointer"
-                        title="Nghe phát âm chuẩn"
-                      >
-                        <Volume2 className="w-4 h-4" />
-                      </button>
+                      {/* Audio & Mic Controls */}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {/* TTS Speak button */}
+                        <button
+                          onClick={() => handleSpeak(item.korean)}
+                          className="p-2 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/40 dark:hover:bg-blue-900/60 text-blue-600 dark:text-blue-300 transition active:scale-90 cursor-pointer"
+                          title="Nghe phát âm chuẩn"
+                        >
+                          <Volume2 className="w-4 h-4" />
+                        </button>
+
+                        {/* Mic Voice Pronunciation Check */}
+                        <button
+                          onClick={() => handleStartSpeechCheck(item.korean, item.id)}
+                          className={`p-2 rounded-xl transition active:scale-90 cursor-pointer shadow-2xs ${
+                            activeRecordingWordId === item.id
+                              ? 'bg-rose-500 text-white animate-pulse ring-2 ring-rose-400'
+                              : 'bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/60 text-emerald-600 dark:text-emerald-300'
+                          }`}
+                          title={
+                            activeRecordingWordId === item.id
+                              ? 'Đang lắng nghe... bấm để dừng'
+                              : 'Thu âm kiểm tra phát âm tiếng Hàn'
+                          }
+                        >
+                          <Mic className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
+
+                    {/* Speech Recognition Feedback on Vocab Card */}
+                    {activeRecordingWordId === item.id && (
+                      <div className="mt-2.5 p-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-[11px] text-rose-700 dark:text-rose-300 flex items-center justify-between animate-pulse">
+                        <div className="flex items-center gap-1.5 font-bold">
+                          <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                          <span>Đang lắng nghe... Hãy phát âm: "{item.korean}"</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleStopSpeechCheck()}
+                          className="text-[10px] underline font-semibold cursor-pointer"
+                        >
+                          Dừng
+                        </button>
+                      </div>
+                    )}
+
+                    {evalResults[item.id] && activeRecordingWordId !== item.id && (
+                      <div
+                        className={`mt-2.5 p-2.5 rounded-2xl text-[11px] border transition ${
+                          evalResults[item.id].isMatch
+                            ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200'
+                            : 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between font-bold">
+                          <span>Độ chuẩn xác: {evalResults[item.id].score}%</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/70 dark:bg-slate-900/70">
+                            {evalResults[item.id].score >= 85 ? '⭐ Chuẩn bản ngữ' : 'Cần luyện thêm'}
+                          </span>
+                        </div>
+                        <p className="mt-0.5 text-[10px]">
+                          {evalResults[item.id].feedback}
+                        </p>
+                      </div>
+                    )}
 
                     {/* Example Sentence */}
                     {item.exampleKorean && (
@@ -901,12 +1035,16 @@ export const StudyTab: React.FC<StudyTabProps> = ({ initialSubTab = 'vocab', onO
               </div>
             </div>
 
-            {/* Sub info */}
+            {/* Sub info & Add File Shortcut */}
             <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px]">
-              <span className="text-slate-500 flex items-center gap-1 font-medium">
-                <BrainCircuit className="w-3.5 h-3.5 text-blue-500" />
-                Thuật toán SuperMemo-2 (SM-2)
-              </span>
+              <button
+                type="button"
+                onClick={() => setIsCustomVocabFileModalOpen(true)}
+                className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold hover:underline cursor-pointer"
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>+ Thêm tệp Flashcard</span>
+              </button>
               <button
                 type="button"
                 onClick={() => handleOpenScheduleCategory(selectedCategoryId && selectedCategoryId !== 15 ? selectedCategoryId : 1)}
@@ -1042,17 +1180,55 @@ export const StudyTab: React.FC<StudyTabProps> = ({ initialSubTab = 'vocab', onO
                               {currentWord.pronunciation}
                             </p>
                           )}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSpeak(currentWord.korean);
-                            }}
-                            className="mt-4 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 text-xs font-bold hover:bg-blue-100 transition"
-                          >
-                            <Volume2 className="w-3.5 h-3.5" />
-                            <span>Nghe phát âm</span>
-                          </button>
+                          <div className="flex items-center justify-center gap-2 mt-4">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSpeak(currentWord.korean);
+                              }}
+                              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 text-xs font-bold hover:bg-blue-100 transition cursor-pointer"
+                            >
+                              <Volume2 className="w-3.5 h-3.5" />
+                              <span>Nghe</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleStartSpeechCheck(currentWord.korean, currentWord.id);
+                              }}
+                              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition shadow-2xs cursor-pointer ${
+                                activeRecordingWordId === currentWord.id
+                                  ? 'bg-rose-500 text-white animate-pulse ring-2 ring-rose-400'
+                                  : 'bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400'
+                              }`}
+                            >
+                              <Mic className="w-3.5 h-3.5" />
+                              <span>{activeRecordingWordId === currentWord.id ? 'Đang nghe...' : 'Thu âm kiểm tra'}</span>
+                            </button>
+                          </div>
+
+                          {/* Speech feedback in flashcard */}
+                          {evalResults[currentWord.id] && (
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              className={`mt-3 p-2.5 rounded-2xl text-xs text-left max-w-xs mx-auto border transition ${
+                                evalResults[currentWord.id].isMatch
+                                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200'
+                                  : 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between font-bold">
+                                <span>Độ chuẩn xác: {evalResults[currentWord.id].score}%</span>
+                                <span className="text-[10px] font-semibold">
+                                  {evalResults[currentWord.id].score >= 85 ? '⭐ Chuẩn' : 'Luyện thêm'}
+                                </span>
+                              </div>
+                              <p className="text-[11px] mt-0.5">{evalResults[currentWord.id].feedback}</p>
+                            </div>
+                          )}
                         </div>
 
                         <div className="text-center text-[11px] text-slate-400 flex items-center justify-center gap-1">
@@ -1756,6 +1932,19 @@ export const StudyTab: React.FC<StudyTabProps> = ({ initialSubTab = 'vocab', onO
         isOpen={isTopikExamModalOpen}
         onClose={() => setIsTopikExamModalOpen(false)}
         initialTypeId={topikExamInitialType}
+      />
+
+      {/* Custom Vocab File Import Modal for Flashcard Study */}
+      <CustomVocabFileModal
+        isOpen={isCustomVocabFileModalOpen}
+        onClose={() => setIsCustomVocabFileModalOpen(false)}
+        onImportAndStartFlashcard={(_importedItems) => {
+          refreshVocabs();
+          setSelectedCategoryId(16);
+          setSubTab('flashcard');
+          setFlashcardIndex(0);
+          setIsCardFlipped(false);
+        }}
       />
     </div>
   );

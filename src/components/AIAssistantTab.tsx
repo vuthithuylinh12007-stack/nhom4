@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ttsService } from '../services/tts';
+import { generateFlexibleAnswer } from '../services/flexibleEngine';
 import {
   Send,
   Bot,
@@ -7,11 +8,11 @@ import {
   Sparkles,
   Volume2,
   RefreshCw,
-  Lightbulb,
-  AlertCircle,
-  HelpCircle,
   Copy,
   Check,
+  AlertCircle,
+  FileCheck,
+  Languages,
 } from 'lucide-react';
 
 interface ChatMessage {
@@ -19,65 +20,19 @@ interface ChatMessage {
   role: 'user' | 'model';
   text: string;
   timestamp: string;
+  contextMode?: string;
+  correctedSentence?: string;
+  translationText?: string;
+  isError?: boolean;
 }
 
-// Built-in offline demo responses if API key isn't set or offline (Đúng trọng tâm, súc tích)
-const DEMO_RESPONSES: Record<string, string> = {
-  'từ vựng': `**대학교** [dae-hak-gyo] : Trường đại học
-
-• **Gốc Hán-Hàn:** 大學校 (Đại học hiệu: Cơ sở giáo dục bậc cao)
-  - 大 (Đại: to lớn) | 學 (Học: học tập) | 校 (Hiệu: trường học)
-• **Cụm từ thông dụng:**
-  - 대학생: Sinh viên đại học
-  - 대학교수: Giáo sư đại học
-• **Ví dụ thực tế:**
-  - 저는 하노이 대학교에서 한국어를 전공하고 있습니다.
-  *(Tôi đang học chuyên ngành tiếng Hàn tại Đại học Hà Nội.)*`,
-
-  'ngữ pháp': `**Phân biệt: -아/어서 vs -(으)니까 (Vì... nên...)**
-
-• **Khác biệt cốt lõi:**
-  - **-아/어서:** Lý do tự nhiên/khách quan. **Tuyệt đối KHÔNG** đi cùng mệnh lệnh -(으)세요 hay rủ rê -(으)ㅂ시다. Thường dùng trong lời xin lỗi, cảm ơn.
-  - **-(으)니까:** Lý do chủ quan/nhấn mạnh căn cứ. **Thoải mái đi cùng** câu mệnh lệnh, rủ rê, khuyên nhủ.
-
-• **Ví dụ so sánh đối chiếu:**
-  - ❌ *Sai:* 늦으니까 죄송합니다.
-  - ✅ *Đúng:* 늦어서 죄송합니다. *(Xin lỗi vì tôi đến muộn)*
-  - ✅ *Đúng:* 날씨가 추우니까 따뜻하게 입으세요. *(Vì trời lạnh nên hãy mặc ấm vào nhé)*`,
-
-  'sửa câu': `**Sửa câu tiếng Hàn:**
-
-• **Câu sửa chuẩn:** "제가 어제 친구를 만났어요." (hoặc "친구하고 만났어요.")
-• **Chỉ rõ lỗi sai:**
-  1. **저가 ➔ 제가:** Đại từ "저" khi gắn với trợ từ chủ ngữ "가" bắt buộc biến đổi thành "제가".
-  2. **친구에게 ➔ 친구를:** Động từ "만나다" (gặp gỡ) là ngoại động từ chỉ đối tượng tiếp nhận hành động, cần trợ từ tân ngữ "를" (hoặc liên từ "하고" cùng với). "에게" chỉ dùng cho đối tượng nhận hướng đến như "전화하다" (gọi điện).`,
-
-  'dịch': `**Bản dịch chuẩn Việt - Hàn:**
-
-• **Thân mật, lịch sự:** 
-  "이번 주말에 시간 있으면 우리 같이 삼겹살 먹으러 가요!"
-• **Trang trọng, kính ngữ:** 
-  "이번 주말에 시간이 있으시면 함께 삼겹살을 드시러 가시겠습니까?"
-
-• **Điểm ngữ pháp then chốt:**
-  - -(으)면: Giả định "Nếu có thời gian"
-  - -(으)러 가다: Cấu trúc mục đích "Đi để làm gì"`,
-
-  'hội thoại': `**Hội thoại nhanh tại quán cà phê Seoul:**
-
-• **Barista:** 어서 오세요! 주문하시겠어요? *(Xin chào quý khách! Quý khách dùng gì ạ?)*
-• **Khách:** 아이스 아메리카노 한 잔이랑 따뜻한 라떼 한 잔 주세요. *(Cho tôi 1 Americano đá và 1 Latte nóng nhé.)*
-• **Barista:** 매장에서 드시고 가시나요? *(Quý khách dùng tại quán hay mang đi ạ?)*
-• **Khách:** 마시고 갈게요. 영수증도 챙겨 주세요! *(Tôi uống tại quán. Cho tôi xin cả hóa đơn nhé!)*`,
-};
-
 export const AIAssistantTab: React.FC = () => {
-  const [activeMode, setActiveMode] = useState<'focused' | 'grammar' | 'correction' | 'translation' | 'vocabulary'>('focused');
+  const [activeMode, setActiveMode] = useState<'focused' | 'correction' | 'grammar' | 'translation' | 'vocabulary'>('focused');
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
-      id: 'init_1',
+      id: 'init_welcome',
       role: 'model',
-      text: `Xin chào! Tôi là **HanGo AI** – Trợ lý gia sư tiếng Hàn.\n\n🎯 **Chế độ kích hoạt:** Trả lời đúng trọng tâm, ngắn gọn, súc tích và giải quyết trực diện câu hỏi của bạn.\n\nBạn có thể hỏi từ vựng, ngữ pháp, nhờ sửa câu hoặc dịch văn phong ngay bên dưới!`,
+      text: `Xin chào! Tôi là **Gia sư HanGo AI** – Trợ lý tiếng Hàn thông minh và tận tâm của bạn.\n\nTôi sẵn sàng hỗ trợ bạn:\n• **✏️ Sửa mọi loại câu tiếng Hàn:** Chính tả, trợ từ (은/는, 이/가, 을/를, 에/에서...), chia động từ, kính ngữ và văn phong chuẩn bản ngữ theo **cấu trúc 9 phần chi tiết**.\n• **⚖️ Giải thích & So sánh ngữ pháp:** Phân tích cặn kẽ công thức patchim, ý nghĩa và ví dụ đối chiếu.\n• **🗣️ Dịch thuật 2 chiều Việt - Hàn:** Văn nói tự nhiên và kính ngữ công sở.\n• **📖 Tra cứu từ vựng:** Phân tích gốc Hán-Hàn và cách đặt câu thực tế.\n\nHãy nhập câu tiếng Hàn hoặc bất kỳ câu hỏi nào của bạn bên dưới!`,
       timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
     },
   ]);
@@ -85,14 +40,16 @@ export const AIAssistantTab: React.FC = () => {
   const [inputPrompt, setInputPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [lastFailedText, setLastFailedText] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const quickPrompts = [
-    { label: '📖 Từ vựng 대학교', query: 'Giải nghĩa từ vựng 대학교 và phân tích gốc Hán-Hàn, ví dụ câu', mode: 'vocabulary' as const },
-    { label: '⚖️ -아/어서 vs -(으)니까', query: 'Phân biệt sự khác nhau giữa ngữ pháp -아/어서 và -(으)니까', mode: 'grammar' as const },
-    { label: '✏️ Sửa câu: 저가 친구에게 만났어요', query: 'Hãy sửa câu tiếng Hàn sau và giải thích lỗi: "저가 어제 친구에게 만났어요"', mode: 'correction' as const },
-    { label: '🗣️ Dịch câu rủ ăn thịt nướng', query: 'Dịch câu này sang tiếng Hàn tự nhiên: Cuối tuần này nếu rảnh thì chúng mình cùng đi ăn thịt nướng nhé', mode: 'translation' as const },
-    { label: '☕ Hội thoại quán Cafe', query: 'Tạo đoạn hội thoại tiếng Hàn mẫu khi đi gọi đồ uống tại quán cà phê Seoul', mode: 'focused' as const },
+    { label: '✏️ Sửa câu: 저가 친구에게 만났어요', query: 'Sửa câu này giúp tôi: "저가 어제 친구에게 만났어요"', mode: 'correction' as const },
+    { label: '⚖️ Phân biệt: -아/어서 vs -(으)니까', query: 'Phân biệt sự khác nhau giữa ngữ pháp -아/어서 và -(으)니까', mode: 'grammar' as const },
+    { label: '🔍 은/는 khác 이/가 thế nào?', query: 'Tại sao dùng 은/는 mà không dùng 이/가? Giải thích chi tiết giúp tôi', mode: 'grammar' as const },
+    { label: '🗣️ Dịch câu rủ đi ăn thịt nướng', query: 'Dịch câu này sang tiếng Hàn tự nhiên: Cuối tuần này nếu rảnh thì chúng mình cùng đi ăn thịt nướng nhé', mode: 'translation' as const },
+    { label: '📖 Gốc Hán từ vựng 대학교', query: 'Giải nghĩa từ vựng 대학교 và phân tích gốc Hán-Hàn, ví dụ câu', mode: 'vocabulary' as const },
   ];
 
   const scrollToBottom = () => {
@@ -101,28 +58,58 @@ export const AIAssistantTab: React.FC = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, loading]);
+
+  // Auto-resize textarea based on input
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 160)}px`;
+    }
+  }, [inputPrompt]);
+
+  // Helper to extract corrected sentence and translation for quick-copy buttons
+  const parseSpecialSections = (text: string) => {
+    let corrected: string | undefined;
+    let translation: string | undefined;
+
+    const correctedMatch = text.match(/(?:Câu đã sửa|2\.\s*\*\*Câu đã sửa\*\*):\s*["'“]?([^"'\n\r]+)["'”]?/i);
+    if (correctedMatch && correctedMatch[1]) {
+      corrected = correctedMatch[1].trim();
+    }
+
+    const translationMatch = text.match(/(?:Dịch tiếng Việt|3\.\s*\*\*Dịch tiếng Việt\*\*):\s*["'“]?([^"'\n\r]+)["'”]?/i);
+    if (translationMatch && translationMatch[1]) {
+      translation = translationMatch[1].trim();
+    }
+
+    return { corrected, translation };
+  };
 
   const handleSend = async (textToSend?: string, modeOverride?: typeof activeMode) => {
     const text = (textToSend || inputPrompt).trim();
     if (!text || loading) return;
 
     const currentMode = modeOverride || activeMode;
+    setLastFailedText(null);
 
     const userMsg: ChatMessage = {
       id: 'usr_' + Date.now(),
       role: 'user',
       text,
       timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+      contextMode: currentMode,
     };
 
     setMessages((prev) => [...prev, userMsg]);
     setInputPrompt('');
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
     setLoading(true);
 
     try {
-      // Call server-side Gemini API proxy with contextType
-      const historyPayload = messages.slice(-4).map((m) => ({
+      const historyPayload = messages.slice(-6).map((m) => ({
         role: m.role,
         text: m.text,
       }));
@@ -139,48 +126,48 @@ export const AIAssistantTab: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
+        const replyText = data.reply || '';
+        const { corrected, translation } = parseSpecialSections(replyText);
+
         const aiMsg: ChatMessage = {
           id: 'ai_' + Date.now(),
           role: 'model',
-          text: data.reply,
+          text: replyText,
           timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+          contextMode: currentMode,
+          correctedSentence: corrected,
+          translationText: translation,
         };
         setMessages((prev) => [...prev, aiMsg]);
       } else {
-        // Fallback: Smart concise direct answers
-        const lower = text.toLowerCase();
-        let fallbackKey = 'từ vựng';
-        if (lower.includes('ngữ pháp') || lower.includes('니까') || lower.includes('어서')) {
-          fallbackKey = 'ngữ pháp';
-        } else if (lower.includes('sửa') || lower.includes('lỗi')) {
-          fallbackKey = 'sửa câu';
-        } else if (lower.includes('dịch') || lower.includes('thịt nướng')) {
-          fallbackKey = 'dịch';
-        } else if (lower.includes('hội thoại') || lower.includes('cafe') || lower.includes('cà phê')) {
-          fallbackKey = 'hội thoại';
-        }
-
-        const fallbackContent =
-          DEMO_RESPONSES[fallbackKey] ||
-          `**Giải đáp trọng tâm cho câu hỏi:** "${text}"\n\n` +
-          `• **Trọng tâm tiếng Hàn:** Trật tự chuẩn là **Chủ ngữ (S) + Tân ngữ (O) + Động từ (V)**.\n` +
-          `• **Lưu ý cốt lõi:** Xác định patchim cuối của danh từ để gắn trợ từ chuẩn xác (은/는, 이/가, 을/를). Đuôi câu lịch sự phổ biến nhất là -아/어요.`;
+        // Fallback to local intelligent flexible engine
+        const fallbackText = generateFlexibleAnswer(text, { contextType: currentMode });
+        const { corrected, translation } = parseSpecialSections(fallbackText);
 
         const aiMsg: ChatMessage = {
           id: 'ai_' + Date.now(),
           role: 'model',
-          text: fallbackContent,
+          text: fallbackText,
           timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+          contextMode: currentMode,
+          correctedSentence: corrected,
+          translationText: translation,
         };
         setMessages((prev) => [...prev, aiMsg]);
       }
     } catch {
-      // Offline fallback
+      // Local engine fallback on network disconnection
+      const fallbackText = generateFlexibleAnswer(text, { contextType: currentMode });
+      const { corrected, translation } = parseSpecialSections(fallbackText);
+
       const aiMsg: ChatMessage = {
         id: 'ai_' + Date.now(),
         role: 'model',
-        text: `Hiện đang ở chế độ ngoại tuyến. Bạn có thể tra cứu nhanh ngữ pháp và từ vựng trong kho học tập hoặc kiểm tra lại kết nối mạng.`,
+        text: fallbackText,
         timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+        contextMode: currentMode,
+        correctedSentence: corrected,
+        translationText: translation,
       };
       setMessages((prev) => [...prev, aiMsg]);
     } finally {
@@ -188,9 +175,9 @@ export const AIAssistantTab: React.FC = () => {
     }
   };
 
-  const handleCopy = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedId(id);
+  const handleCopyText = (content: string, key: string) => {
+    navigator.clipboard.writeText(content);
+    setCopiedId(key);
     setTimeout(() => setCopiedId(null), 2000);
   };
 
@@ -199,28 +186,37 @@ export const AIAssistantTab: React.FC = () => {
     const koreanRegex = /[\u3131-\uD79D]+/g;
     const matches = text.match(koreanRegex);
     if (matches && matches.length > 0) {
-      ttsService.speak(matches.slice(0, 5).join(' '));
+      ttsService.speak(matches.slice(0, 8).join(' '));
     } else {
-      ttsService.speak(text.slice(0, 50));
+      ttsService.speak(text.slice(0, 60));
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
     }
   };
 
   return (
     <div className="flex flex-col h-[calc(100vh-140px)] max-w-2xl mx-auto pb-16 animate-in fade-in duration-200">
       {/* Top AI status banner */}
-      <div className="flex items-center justify-between p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs mb-3 text-xs">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold">
+      <div className="flex items-center justify-between p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs mb-2.5 text-xs">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold shadow-xs">
             <Bot className="w-4 h-4" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <span className="font-bold text-slate-900 dark:text-white">Gia sư HanGo AI</span>
-              <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold px-1.5 py-0.5 rounded-full border border-emerald-500/20">
-                🎯 Đúng trọng tâm
+              <span className="text-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold px-1.5 py-0.5 rounded-full border border-blue-500/20">
+                ✨ Trợ lý thông minh
               </span>
             </div>
-            <p className="text-[10px] text-slate-500">Phản hồi súc tích, đi thẳng vào vấn đề</p>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400">
+              Sửa mọi câu tiếng Hàn • Phân tích 9 phần • Trả lời đúng trọng tâm
+            </p>
           </div>
         </div>
 
@@ -230,36 +226,37 @@ export const AIAssistantTab: React.FC = () => {
               {
                 id: 'rst_' + Date.now(),
                 role: 'model',
-                text: 'Đã làm mới cuộc trò chuyện. HanGo AI luôn sẵn sàng trả lời trực diện câu hỏi của bạn!',
+                text: 'Đã làm mới cuộc hội thoại. Hãy gửi câu tiếng Hàn bạn muốn sửa hoặc bất kỳ câu hỏi nào để tôi giải đáp ngay nhé!',
                 timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
               },
             ])
           }
-          className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-blue-600 transition"
+          className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-blue-600 transition p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+          title="Làm mới cuộc trò chuyện"
         >
-          <RefreshCw className="w-3 h-3" />
-          <span>Làm mới</span>
+          <RefreshCw className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Làm mới</span>
         </button>
       </div>
 
-      {/* Mode Switcher */}
+      {/* Mode Switcher Tabs */}
       <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-2 text-xs">
         {[
-          { id: 'focused', label: '🎯 Đúng trọng tâm' },
-          { id: 'correction', label: '✏️ Sửa lỗi câu' },
-          { id: 'grammar', label: '⚖️ Ngữ pháp' },
-          { id: 'translation', label: '🗣️ Dịch thuật' },
-          { id: 'vocabulary', label: '📖 Từ vựng' },
+          { id: 'focused', label: '🎯 Đúng trọng tâm', desc: 'Ngắn gọn, súc tích' },
+          { id: 'correction', label: '✏️ Sửa lỗi câu', desc: 'Chuẩn 9 phần chi tiết' },
+          { id: 'grammar', label: '⚖️ Ngữ pháp', desc: 'Cấu trúc & Đối chiếu' },
+          { id: 'translation', label: '🗣️ Dịch thuật', desc: 'Việt ➔ Hàn & Hàn ➔ Việt' },
+          { id: 'vocabulary', label: '📖 Từ vựng', desc: 'Gốc Hán & Ví dụ' },
         ].map((tab) => {
           const isActive = activeMode === tab.id;
           return (
             <button
               key={tab.id}
               onClick={() => setActiveMode(tab.id as any)}
-              className={`px-2.5 py-1 rounded-xl font-medium text-[11px] whitespace-nowrap transition cursor-pointer border ${
+              className={`px-3 py-1.5 rounded-xl font-semibold text-[11px] whitespace-nowrap transition cursor-pointer border ${
                 isActive
-                  ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-blue-400'
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-600'
               }`}
             >
               {tab.label}
@@ -269,7 +266,7 @@ export const AIAssistantTab: React.FC = () => {
       </div>
 
       {/* Messages Scroll Area */}
-      <div className="flex-1 overflow-y-auto space-y-4 px-1 pr-2 scrollbar-none">
+      <div className="flex-1 overflow-y-auto space-y-3.5 px-1 pr-1.5 scrollbar-none">
         {messages.map((msg) => {
           const isAI = msg.role === 'model';
 
@@ -279,43 +276,75 @@ export const AIAssistantTab: React.FC = () => {
               className={`flex items-start gap-2.5 ${isAI ? 'justify-start' : 'justify-end'}`}
             >
               {isAI && (
-                <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-1 shadow-sm">
+                <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-1 shadow-xs">
                   한
                 </div>
               )}
 
               <div
-                className={`max-w-[85%] rounded-3xl p-4 text-xs leading-relaxed transition ${
+                className={`max-w-[90%] sm:max-w-[85%] rounded-3xl p-4 text-xs leading-relaxed transition ${
                   isAI
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-slate-200/80 dark:border-slate-800 shadow-xs'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-slate-200/90 dark:border-slate-800 shadow-xs'
                     : 'bg-blue-600 text-white font-medium shadow-md shadow-blue-600/15'
                 }`}
               >
                 {/* Content formatted */}
-                <div className="whitespace-pre-wrap font-sans">{msg.text}</div>
+                <div className="whitespace-pre-wrap font-sans break-words">{msg.text}</div>
 
                 {/* Footer Controls for AI message */}
                 {isAI && (
-                  <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 mt-2.5 pt-2 text-[10px] text-slate-400">
+                  <div className="border-t border-slate-100 dark:border-slate-800 mt-3 pt-2.5 flex flex-wrap items-center justify-between gap-2 text-[10px] text-slate-400">
                     <span>{msg.timestamp}</span>
-                    <div className="flex items-center gap-2">
+
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {/* Button: Speak Korean audio */}
                       <button
                         onClick={() => handleSpeakText(msg.text)}
-                        className="hover:text-blue-600 flex items-center gap-0.5 transition"
-                        title="Nghe câu tiếng Hàn trong đoạn văn"
+                        className="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:text-blue-600 flex items-center gap-1 transition"
+                        title="Nghe phát âm tiếng Hàn"
                       >
                         <Volume2 className="w-3 h-3" />
                         <span>Nghe</span>
                       </button>
+
+                      {/* Button: Copy corrected sentence specifically */}
+                      {msg.correctedSentence && (
+                        <button
+                          onClick={() => handleCopyText(msg.correctedSentence!, `${msg.id}_corr`)}
+                          className="px-2 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-semibold flex items-center gap-1 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition"
+                          title="Sao chép câu đã sửa"
+                        >
+                          <FileCheck className="w-3 h-3" />
+                          <span>
+                            {copiedId === `${msg.id}_corr` ? 'Đã chép câu sửa' : 'Chép câu sửa'}
+                          </span>
+                        </button>
+                      )}
+
+                      {/* Button: Copy translation specifically */}
+                      {msg.translationText && (
+                        <button
+                          onClick={() => handleCopyText(msg.translationText!, `${msg.id}_trans`)}
+                          className="px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition"
+                          title="Sao chép bản dịch"
+                        >
+                          <Languages className="w-3 h-3" />
+                          <span>
+                            {copiedId === `${msg.id}_trans` ? 'Đã chép bản dịch' : 'Chép bản dịch'}
+                          </span>
+                        </button>
+                      )}
+
+                      {/* Button: Copy entire explanation */}
                       <button
-                        onClick={() => handleCopy(msg.text, msg.id)}
-                        className="hover:text-blue-600 flex items-center gap-0.5 transition"
-                        title="Sao chép câu trả lời"
+                        onClick={() => handleCopyText(msg.text, msg.id)}
+                        className="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:text-blue-600 flex items-center gap-1 transition"
+                        title="Sao chép toàn bộ nội dung"
                       >
                         {copiedId === msg.id ? (
                           <>
                             <Check className="w-3 h-3 text-emerald-500" />
-                            <span className="text-emerald-500">Đã sao chép</span>
+                            <span className="text-emerald-500 font-semibold">Đã sao chép</span>
                           </>
                         ) : (
                           <>
@@ -340,14 +369,30 @@ export const AIAssistantTab: React.FC = () => {
 
         {/* Loading Bubble */}
         {loading && (
-          <div className="flex items-start gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-1">
+          <div className="flex items-start gap-2.5 animate-in fade-in">
+            <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-1 shadow-xs">
               한
             </div>
-            <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 text-xs shadow-xs flex items-center gap-2 text-slate-500">
-              <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping" />
-              <span>Gia sư HanGo đang suy nghĩ câu trả lời...</span>
+            <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 text-xs shadow-xs flex items-center gap-2.5 text-slate-600 dark:text-slate-300">
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-ping" />
+              <span>Gia sư HanGo đang phân tích và chuẩn bị câu trả lời...</span>
             </div>
+          </div>
+        )}
+
+        {/* Retry Failed state if any */}
+        {lastFailedText && (
+          <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>Gặp sự cố khi gửi tin nhắn.</span>
+            </div>
+            <button
+              onClick={() => handleSend(lastFailedText)}
+              className="px-2.5 py-1 bg-amber-600 text-white rounded-lg font-bold hover:bg-amber-700 transition"
+            >
+              Thử lại
+            </button>
           </div>
         )}
 
@@ -355,7 +400,7 @@ export const AIAssistantTab: React.FC = () => {
       </div>
 
       {/* Quick Prompt Chips */}
-      <div className="py-2 overflow-x-auto scrollbar-none flex items-center gap-2">
+      <div className="py-2 overflow-x-auto scrollbar-none flex items-center gap-1.5 shrink-0">
         {quickPrompts.map((qp, idx) => (
           <button
             key={idx}
@@ -364,38 +409,35 @@ export const AIAssistantTab: React.FC = () => {
               handleSend(qp.query, qp.mode);
             }}
             disabled={loading}
-            className="px-3 py-1.5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px] font-semibold text-slate-700 dark:text-slate-300 hover:border-blue-400 dark:hover:border-blue-600 whitespace-nowrap transition cursor-pointer shadow-2xs"
+            className="px-3 py-1.5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px] font-semibold text-slate-700 dark:text-slate-300 hover:border-blue-400 dark:hover:border-blue-600 whitespace-nowrap transition cursor-pointer shadow-2xs active:scale-95"
           >
             {qp.label}
           </button>
         ))}
       </div>
 
-      {/* Input Bar */}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          handleSend();
-        }}
-        className="relative flex items-center gap-2 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-2 shadow-sm"
-      >
-        <input
-          type="text"
+      {/* Multiline Input Bar supporting questions, single sentences, and paragraphs */}
+      <div className="relative flex items-end gap-2 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-2 shadow-sm focus-within:border-blue-500 transition">
+        <textarea
+          ref={textareaRef}
+          rows={1}
           value={inputPrompt}
           onChange={(e) => setInputPrompt(e.target.value)}
-          placeholder="Hỏi từ vựng, ngữ pháp, nhờ sửa câu tiếng Hàn..."
+          onKeyDown={handleKeyDown}
+          placeholder="Nhập câu tiếng Hàn cần sửa, ngữ pháp hoặc câu hỏi (Enter để gửi, Shift+Enter xuống dòng)..."
           disabled={loading}
-          className="flex-1 bg-transparent px-3 py-1.5 text-xs focus:outline-none text-slate-900 dark:text-white"
+          className="flex-1 bg-transparent px-3 py-2 text-xs focus:outline-none text-slate-900 dark:text-white resize-none max-h-40 min-h-[38px] leading-relaxed"
         />
 
         <button
-          type="submit"
+          onClick={() => handleSend()}
           disabled={!inputPrompt.trim() || loading}
-          className="p-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 active:scale-95 disabled:opacity-40 text-white transition shadow-sm cursor-pointer"
+          className="p-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 active:scale-95 disabled:opacity-40 text-white transition shadow-sm cursor-pointer shrink-0 mb-0.5"
+          title="Gửi câu hỏi cho Gia sư HanGo"
         >
           <Send className="w-4 h-4" />
         </button>
-      </form>
+      </div>
     </div>
   );
 };
