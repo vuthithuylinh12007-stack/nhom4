@@ -1,46 +1,91 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
   <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#2563EB" />
-      <stop offset="50%" stop-color="#1D4ED8" />
-      <stop offset="100%" stop-color="#0F172A" />
+    <!-- Background Gradient -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1D4ED8" />
+      <stop offset="45%" stop-color="#2563EB" />
+      <stop offset="85%" stop-color="#4F46E5" />
+      <stop offset="100%" stop-color="#312E81" />
     </linearGradient>
-    <linearGradient id="taegeukRed" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#FB7185" />
-      <stop offset="100%" stop-color="#E11D48" />
+
+    <!-- Text Accent Gradient -->
+    <linearGradient id="goGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#67E8F9" />
+      <stop offset="100%" stop-color="#38BDF8" />
     </linearGradient>
-    <linearGradient id="taegeukBlue" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#38BDF8" />
-      <stop offset="100%" stop-color="#0284C7" />
+
+    <!-- Subtle Shine Gradient -->
+    <linearGradient id="shineGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.25" />
+      <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.05" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
     </linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000" flood-opacity="0.3" />
+
+    <!-- Drop Shadow Filter -->
+    <filter id="textShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#0F172A" flood-opacity="0.45" />
+    </filter>
+
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="16" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
     </filter>
   </defs>
 
-  <!-- Background with squircle/rounded rect -->
-  <rect width="512" height="512" rx="112" fill="url(#bg)" />
+  <!-- App Icon Base Squircle -->
+  <rect width="512" height="512" rx="116" fill="url(#bgGradient)" />
 
-  <!-- Outer subtle glow circle -->
-  <circle cx="256" cy="230" r="160" fill="none" stroke="#60A5FA" stroke-width="4" stroke-dasharray="12 12" opacity="0.4" />
+  <!-- Top Glass Highlight -->
+  <path d="M 0 116 C 0 52 52 0 116 0 L 396 0 C 460 0 512 52 512 116 L 512 210 C 370 240 140 240 0 210 Z" fill="url(#shineGradient)" />
 
-  <!-- Taegeuk Inspired emblem -->
-  <g filter="url(#shadow)" transform="translate(256, 210) scale(0.95)">
-    <!-- Red Top Curve -->
-    <path d="M 0 -100 A 100 100 0 0 1 0 100 A 50 50 0 0 1 0 0 A 50 50 0 0 0 0 -100 Z" fill="url(#taegeukRed)" />
-    <!-- Blue Bottom Curve -->
-    <path d="M 0 -100 A 50 50 0 0 1 0 0 A 50 50 0 0 0 0 100 A 100 100 0 0 1 0 -100 Z" fill="url(#taegeukBlue)" />
-    <!-- Center letter "한" in white -->
-    <text x="0" y="32" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="96" fill="#FFFFFF" text-anchor="middle" letter-spacing="-2">한</text>
+  <!-- Inner Border Line -->
+  <rect x="6" y="6" width="500" height="500" rx="110" fill="none" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="4" />
+
+  <!-- Ambient Glow Behind Text -->
+  <circle cx="256" cy="256" r="140" fill="#38BDF8" opacity="0.12" filter="url(#softGlow)" />
+
+  <!-- Main "Hango" Wordmark Icon Display -->
+  <g filter="url(#textShadow)">
+    <text
+      x="256"
+      y="285"
+      font-family="'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+      font-weight="900"
+      font-size="112"
+      text-anchor="middle"
+      letter-spacing="-3"
+    >
+      <tspan fill="#FFFFFF">Han</tspan><tspan fill="url(#goGradient)">go</tspan>
+    </text>
   </g>
 
-  <!-- App name banner "HanGo" -->
-  <g transform="translate(256, 420)">
-    <rect x="-140" y="-36" width="280" height="56" rx="28" fill="#FFFFFF" fill-opacity="0.95" filter="url(#shadow)" />
-    <text x="-4" y="4" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="34" fill="#0F172A" text-anchor="middle">
-      <tspan fill="#2563EB">Han</tspan><tspan fill="#E11D48">Go</tspan>
+  <!-- Dynamic Smile Accent Underline -->
+  <path
+    d="M 155 330 Q 256 366 357 330"
+    stroke="url(#goGradient)"
+    stroke-width="12"
+    stroke-linecap="round"
+    fill="none"
+    filter="url(#textShadow)"
+  />
+
+  <!-- Accent Sparkle Dot -->
+  <circle cx="376" cy="226" r="10" fill="#FDE047" filter="url(#textShadow)" />
+
+  <!-- Subtitle Tag: "KOREAN" -->
+  <g transform="translate(256, 400)">
+    <rect x="-80" y="-18" width="160" height="36" rx="18" fill="#FFFFFF" fill-opacity="0.15" />
+    <text
+      x="0"
+      y="6"
+      font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+      font-weight="800"
+      font-size="15"
+      fill="#BAE6FD"
+      text-anchor="middle"
+      letter-spacing="4"
+    >
+      KOREAN
     </text>
-    <!-- Little star accent -->
-    <circle cx="95" cy="-8" r="5" fill="#F59E0B" />
   </g>
 </svg>

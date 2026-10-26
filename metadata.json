@@ -1,6 +1,6 @@
 {
   "name": "HanGo - Học Tiếng Hàn Thông Minh",
-  "description": "Ứng dụng học tiếng Hàn toàn diện cho người Việt: 15 chủ đề từ vựng, flashcard ngắt quãng, ngữ pháp, hội thoại giao tiếp, minigame và trợ lý AI Gemini.",
+  "description": "Ứng dụng học tiếng Hàn toàn diện cho người Việt: 15 chủ đề từ vựng, flashcard ngắt quãng SM-2, luyện phát âm giọng nói, ngữ pháp, hội thoại và trò chơi.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

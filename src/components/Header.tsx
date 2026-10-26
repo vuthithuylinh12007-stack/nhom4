@@ -25,13 +25,15 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between gap-2">
         {/* Logo and Brand */}
         <div className="flex items-center gap-2.5 cursor-pointer select-none">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-700 flex items-center justify-center shadow-md shadow-blue-500/20 text-white font-black text-lg">
-            한
-          </div>
+          <img
+            src="/icon.svg"
+            alt="Hango"
+            className="w-9 h-9 rounded-xl shadow-md shadow-blue-500/25 object-cover border border-blue-400/30"
+          />
           <div>
             <div className="flex items-center gap-1.5">
               <span className="font-extrabold text-base tracking-tight text-slate-900 dark:text-white">
-                <span className="text-blue-600 dark:text-blue-400">Han</span>Go
+                <span className="text-blue-600 dark:text-blue-400">Han</span>go
               </span>
               <span className="px-1.5 py-0.2 rounded-md bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-[10px] font-bold">
                 PRO

@@ -113,18 +113,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
           <div className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-pink-500/20 blur-2xl pointer-events-none" />
 
           {/* Icon Badge */}
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-inner mb-4">
-            <span className="text-3xl font-black tracking-tight text-white">한</span>
+          <div className="inline-flex items-center justify-center mb-4">
+            <img
+              src="/icon.svg"
+              alt="Hango"
+              className="w-16 h-16 rounded-2xl shadow-xl ring-2 ring-white/30 object-cover"
+            />
           </div>
 
-          <h1 className="text-2xl font-black tracking-tight">HanGo 한국어</h1>
+          <h1 className="text-2xl font-black tracking-tight">Hango 한국어</h1>
           <p className="text-xs text-blue-100/90 mt-1 font-medium">
             Ứng dụng học tiếng Hàn thông minh cho người Việt
           </p>
 
           <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 text-[11px] font-medium backdrop-blur-sm">
             <Sparkles className="w-3.5 h-3.5 text-pink-300" />
-            <span>15 Chủ đề • Ngữ pháp • Hội thoại • AI Gemini</span>
+            <span>15 Chủ đề • Ngữ pháp • Hội thoại • Flashcard</span>
           </div>
         </div>
 
