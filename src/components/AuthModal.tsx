@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { storageService } from '../services/storage';
 import { User } from '../types';
+import { HangoMascot } from './games/HangoMascot';
 import { Eye, EyeOff, Lock, Mail, User as UserIcon, Sparkles, AlertCircle, ArrowRight, CheckCircle2 } from 'lucide-react';
 
 interface AuthModalProps {
@@ -107,28 +108,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 overflow-y-auto">
       <div className="w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden text-slate-800 dark:text-slate-100 my-8 transition-all">
         {/* Brand Header Banner */}
-        <div className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-slate-900 p-8 text-white text-center overflow-hidden">
-          {/* Subtle decorative circles */}
-          <div className="absolute -top-12 -right-12 w-40 h-40 rounded-full bg-blue-400/20 blur-2xl pointer-events-none" />
-          <div className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-pink-500/20 blur-2xl pointer-events-none" />
+        <div className="relative bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 p-7 text-white text-center overflow-hidden">
+          {/* Subtle decorative glowing circles */}
+          <div className="absolute -top-12 -right-12 w-44 h-44 rounded-full bg-cyan-400/25 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-8 -left-8 w-36 h-36 rounded-full bg-pink-500/25 blur-3xl pointer-events-none" />
 
-          {/* Icon Badge */}
-          <div className="inline-flex items-center justify-center mb-4">
-            <img
-              src="/icon.svg"
-              alt="Hango"
-              className="w-16 h-16 rounded-2xl shadow-xl ring-2 ring-white/30 object-cover"
-            />
+          {/* Mascot in Header */}
+          <div className="flex justify-center mb-2">
+            <HangoMascot size="md" mood="cheering" />
           </div>
 
-          <h1 className="text-2xl font-black tracking-tight">Hango 한국어</h1>
-          <p className="text-xs text-blue-100/90 mt-1 font-medium">
-            Ứng dụng học tiếng Hàn thông minh cho người Việt
+          <div className="flex items-center justify-center gap-2">
+            <h1 className="text-2xl font-black tracking-tight">Hango PRO</h1>
+            <span className="px-2 py-0.5 rounded-full bg-amber-400 text-amber-950 font-black text-[10px] shadow-2xs">
+              한국어
+            </span>
+          </div>
+          <p className="text-xs text-blue-100 font-medium mt-1">
+            Học tiếng Hàn siêu dễ thương & hiệu quả cho người Việt
           </p>
 
-          <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 text-[11px] font-medium backdrop-blur-sm">
-            <Sparkles className="w-3.5 h-3.5 text-pink-300" />
-            <span>15 Chủ đề • Ngữ pháp • Hội thoại • Flashcard</span>
+          <div className="mt-3.5 inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/15 text-[11px] font-bold backdrop-blur-sm shadow-inner">
+            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+            <span>15 Chủ đề • Ngữ pháp • Hội thoại • Trò chơi</span>
           </div>
         </div>
 

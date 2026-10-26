@@ -27,13 +27,19 @@ export interface VocabularyItem {
   id: string;
   korean: string;
   vietnamese: string;
+  meaning?: string; // alias for vietnamese
   pronunciation: string;
   wordType: WordType;
   exampleKorean: string;
+  example?: string; // alias for exampleKorean
   exampleVietnamese: string;
+  exampleMeaning?: string; // alias for exampleVietnamese
   categoryId: number;
+  topic?: string; // topic name string
   level: WordLevel;
   note?: string;
+  imageUrl?: string;
+  fallbackEmoji?: string;
   isFavorite: boolean;
   isLearned: boolean;
   isCustom?: boolean; // user created
@@ -95,12 +101,14 @@ export interface ConversationItem {
 
 export interface GameScoreRecord {
   id: string;
-  gameType: 'quiz' | 'matching' | 'fillBlank' | 'blitz';
+  gameType: 'pictureMatch' | 'quiz' | 'matching' | 'fillBlank' | 'blitz';
   gameName: string;
   score: number;
   maxScore: number;
   timeSpentSeconds: number;
   date: string;
+  topicName?: string;
+  level?: string;
 }
 
 export interface QuizResultRecord {

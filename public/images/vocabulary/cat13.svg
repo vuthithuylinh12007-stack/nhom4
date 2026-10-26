@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="grad13" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#eab308" />
+      <stop offset="100%" stop-color="#ca8a04" />
+    </linearGradient>
+  </defs>
+  <rect width="200" height="200" rx="40" fill="url(#grad13)" />
+  <circle cx="100" cy="90" r="55" fill="white" fill-opacity="0.22" />
+  <text x="100" y="112" font-size="64" text-anchor="middle" dominant-baseline="middle">😊</text>
+  <text x="100" y="165" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="bold" font-size="14" fill="#ffffff" text-anchor="middle">Chủ đề 13</text>
+</svg>

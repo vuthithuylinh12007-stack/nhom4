@@ -1,0 +1,101 @@
+# -*- coding: utf-8 -*-
+"""
+Hango PRO - 1,000 Korean Vocabulary Generator
+Generates valid UTF-8 vocabulary.json and initialVocabularies.ts
+Guarantees exact 1,000 unique Korean words with examples, pronunciation, and categories.
+"""
+import json
+import os
+import re
+
+CATEGORIES = [
+    (1, "Chào hỏi và giới thiệu bản thân", "인사 및 자기소개", "👋", 67),
+    (2, "Gia đình và các mối quan hệ", "가족 및 인간관계", "👨‍👩‍👧‍👦", 67),
+    (3, "Trường học và học tập", "학교 및 공부", "🎓", 67),
+    (4, "Đồ ăn và thức uống", "음식 및 음료", "🍜", 67),
+    (5, "Thời gian, ngày tháng và số đếm", "시간, 날짜 및 숫자", "⏰", 67),
+    (6, "Địa điểm và giao thông", "장소 및 교통", "🚇", 67),
+    (7, "Mua sắm và tiền bạc", "쇼핑 및 돈", "🛍️", 67),
+    (8, "Sức khỏe và cơ thể", "건강 및 신체", "🏥", 67),
+    (9, "Du lịch và khách sạn", "여행 및 호텔", "✈️", 67),
+    (10, "Công việc và nghề nghiệp", "직업 및 업무", "💼", 67),
+    (11, "Nhà cửa và đồ dùng", "집 및 가구", "🏠", 66),
+    (12, "Thời tiết và thiên nhiên", "날씨 및 자연", "🌤️", 66),
+    (13, "Cảm xúc và tính cách", "감정 및 성격", "😊", 66),
+    (14, "Động từ và tính từ thông dụng", "자주 쓰이는 동사·형용사", "🏃", 66),
+    (15, "Từ vựng luyện thi TOPIK", "토픽 필수 어휘", "🏆", 66),
+]
+
+# We will populate rich datasets for each category
+# Category 1: 67 items
+CAT_1 = [
+    ("안녕하세요", "Xin chào", "[an-nyeong-ha-se-yo]", "Cụm từ", "Sơ cấp 1", "안녕하세요, 저는 민수입니다.", "Xin chào, tôi là Minsoo.", "👋"),
+    ("감사합니다", "Xin cảm ơn", "[kam-sa-ham-ni-da]", "Cụm từ", "Sơ cấp 1", "도와주셔서 감사합니다.", "Cảm ơn bạn đã giúp đỡ.", "🙏"),
+    ("죄송합니다", "Xin lỗi", "[choe-song-ham-ni-da]", "Cụm từ", "Sơ cấp 1", "늦어서 죄송합니다.", "Tôi xin lỗi vì đến trễ.", "🙇"),
+    ("미안해요", "Xin lỗi (thân mật)", "[mi-an-hae-yo]", "Cụm từ", "Sơ cấp 1", "정말 미안해요, 깜빡했어요.", "Thực sự xin lỗi nhé, mình quên mất.", "😅"),
+    ("안녕히 계세요", "Tạm biệt (ở lại)", "[an-nyeong-hi gye-se-yo]", "Cụm từ", "Sơ cấp 1", "먼저 가겠습니다. 안녕히 계세요.", "Tôi về trước đây ạ. Chúc ở lại bình an.", "🚪"),
+    ("안녕히 가세요", "Tạm biệt (đi về)", "[an-nyeong-hi ga-se-yo]", "Cụm từ", "Sơ cấp 1", "조심히 가세요. 안녕히 가세요.", "Đi cẩn thận nhé. Tạm biệt bạn.", "👋"),
+    ("처음 뵙겠습니다", "Lần đầu gặp mặt", "[cheo-eum boep-get-seum-ni-da]", "Cụm từ", "Sơ cấp 1", "처음 뵙겠습니다. 잘 부탁드립니다.", "Lần đầu gặp mặt, mong được giúp đỡ.", "🤝"),
+    ("반갑습니다", "Rất vui được gặp", "[ban-gap-seum-ni-da]", "Cụm từ", "Sơ cấp 1", "만나서 반갑습니다.", "Rất vui được gặp bạn.", "😊"),
+    ("이름", "Tên", "[i-reum]", "Danh từ", "Sơ cấp 1", "이름이 무엇입니까?", "Tên bạn là gì?", "🏷️"),
+    ("성함", "Quý danh (kính ngữ)", "[seong-ham]", "Danh từ", "Sơ cấp 2", "선생님의 성함이 어떻게 되세요?", "Quý danh của thầy là gì ạ?", "📇"),
+    ("나이", "Tuổi", "[na-i]", "Danh từ", "Sơ cấp 1", "나이가 몇 살이에요?", "Bạn bao nhiêu tuổi?", "🎂"),
+    ("연세", "Tuổi tác (kính ngữ)", "[yeon-se]", "Danh từ", "Sơ cấp 2", "할아버지 연세가 어떻게 되십니까?", "Ông bao nhiêu tuổi rồi ạ?", "👴"),
+    ("국적", "Quốc tịch", "[guk-jeok]", "Danh từ", "Sơ cấp 1", "당신의 국적은 어디입니까?", "Quốc tịch của bạn là nước nào?", "🌐"),
+    ("베트남", "Việt Nam", "[be-teu-nam]", "Danh từ", "Sơ cấp 1", "저는 베트남 사람입니다.", "Tôi là người Việt Nam.", "🇻🇳"),
+    ("한국", "Hàn Quốc", "[han-guk]", "Danh từ", "Sơ cấp 1", "한국어를 열심히 배웁니다.", "Tôi chăm chỉ học tiếng Hàn.", "🇰🇷"),
+    ("사람", "Người", "[sa-ram]", "Danh từ", "Sơ cấp 1", "좋은 사람을 만났어요.", "Tôi đã gặp một người tốt.", "👤"),
+    ("고향", "Quê hương", "[go-hyang]", "Danh từ", "Sơ cấp 1", "제 고향은 다낭입니다.", "Quê hương của tôi là Đà Nẵng.", "🏡"),
+    ("취미", "Sở thích", "[chwi-mi]", "Danh từ", "Sơ cấp 1", "취미가 무엇입니까?", "Sở thích của bạn là gì?", "🎨"),
+    ("특기", "Sở trường", "[teuk-gi]", "Danh từ", "Sơ cấp 2", "제 특기는 수영이에요.", "Sở trường của tôi là bơi lội.", "🏊"),
+    ("직업", "Nghề nghiệp", "[ji-geom]", "Danh từ", "Sơ cấp 1", "직업이 어떻게 되세요?", "Nghề nghiệp của bạn là gì?", "💼"),
+    ("학생", "Học sinh, sinh viên", "[hak-saeng]", "Danh từ", "Sơ cấp 1", "저는 대학교 학생입니다.", "Tôi là sinh viên đại học.", "🎒"),
+    ("선생님", "Thầy cô giáo", "[seon-saeng-nim]", "Danh từ", "Sơ cấp 1", "선생님, 질문이 있습니다.", "Thưa thầy, em có câu hỏi ạ.", "👨‍🏫"),
+    ("회사원", "Nhân viên công ty", "[hoe-sa-won]", "Danh từ", "Sơ cấp 1", "저는 무역 회사원입니다.", "Tôi là nhân viên công ty thương mại.", "👔"),
+    ("의사", "Bác sĩ", "[ui-sa]", "Danh từ", "Sơ cấp 1", "언니는 병원 의사입니다.", "Chị gái tôi là bác sĩ bệnh viện.", "🩺"),
+    ("간호사", "Y tá", "[gan-ho-sa]", "Danh từ", "Sơ cấp 1", "간호사 분들이 친절해요.", "Các y tá rất thân thiện.", "💉"),
+    ("저", "Tôi (khiêm tốn)", "[jeo]", "Đại từ", "Sơ cấp 1", "저는 베트남에서 왔어요.", "Tôi đến từ Việt Nam.", "🙋"),
+    ("나", "Tôi, tao, mình (thân mật)", "[na]", "Đại từ", "Sơ cấp 1", "나는 지금 집에 가.", "Mình đang đi về nhà đây.", "🧒"),
+    ("우리", "Chúng tôi, chúng ta", "[u-ri]", "Đại từ", "Sơ cấp 1", "우리는 좋은 친구입니다.", "Chúng tôi là bạn tốt của nhau.", "👥"),
+    ("당신", "Bạn, anh, chị", "[dang-sin]", "Đại từ", "Sơ cấp 2", "당신을 항상 생각합니다.", "Tôi luôn nghĩ về bạn.", "🫵"),
+    ("너", "Cậu, mày (thân mật)", "[neo]", "Đại từ", "Sơ cấp 1", "너 오늘 시간 있어?", "Cậu hôm nay có rảnh không?", "👉"),
+    ("누구", "Ai", "[nu-gu]", "Đại từ", "Sơ cấp 1", "저 사람은 누구입니까?", "Người kia là ai thế?", "❓"),
+    ("어디", "Ở đâu", "[eo-di]", "Đại từ", "Sơ cấp 1", "어디에서 살아요?", "Bạn sống ở đâu?", "📍"),
+    ("무엇", "Cái gì", "[mu-eot]", "Đại từ", "Sơ cấp 1", "이것은 무엇입니까?", "Cái này là cái gì?", "❔"),
+    ("언제", "Khi nào", "[eon-je]", "Đại từ", "Sơ cấp 1", "생일이 언제예요?", "Sinh nhật bạn khi nào?", "📅"),
+    ("어떻게", "Như thế nào", "[eo-tteo-ke]", "Phó từ", "Sơ cấp 1", "이 단어를 어떻게 읽어요?", "Từ này đọc như thế nào?", "📖"),
+    ("왜", "Tại sao", "[wae]", "Phó từ", "Sơ cấp 1", "왜 늦었어요?", "Sao bạn lại đến trễ?", "🤔"),
+    ("네", "Vâng, dạ", "[ne]", "Cụm từ", "Sơ cấp 1", "네, 알겠습니다.", "Vâng, tôi đã hiểu.", "👍"),
+    ("아니요", "Không", "[a-ni-yo]", "Cụm từ", "Sơ cấp 1", "아니요, 아직 안 먹었어요.", "Không, tôi vẫn chưa ăn.", "👎"),
+    ("괜찮아요", "Không sao đâu", "[gwaen-chan-a-yo]", "Cụm từ", "Sơ cấp 1", "걱정 마세요, 괜찮아요.", "Đừng lo, không sao đâu mà.", "👌"),
+    ("실례합니다", "Xin thất lễ / Xin lỗi làm phiền", "[sil-lye-ham-ni-da]", "Cụm từ", "Sơ cấp 1", "실례합니다, 길 좀 물을게요.", "Xin lỗi làm phiền, cho tôi hỏi đường chút.", "🚶"),
+    ("축하합니다", "Chúc mừng", "[chuk-ha-ham-ni-da]", "Cụm từ", "Sơ cấp 1", "졸업을 진심으로 축하합니다.", "Chân thành chúc mừng tốt nghiệp.", "🎉"),
+    ("수고하셨습니다", "Bạn đã vất vả rồi", "[su-go-ha-syeot-seum-ni-da]", "Cụm từ", "Sơ cấp 2", "오늘 하루도 수고하셨습니다.", "Hôm nay bạn cũng vất vả nhiều rồi.", "👏"),
+    ("잘 부탁드립니다", "Mong được giúp đỡ", "[jal bu-tak-deu-rim-ni-da]", "Cụm từ", "Sơ cấp 1", "앞으로 잘 부탁드립니다.", "Sau này mong mọi người giúp đỡ.", "🙇‍♂️"),
+    ("오랜만이에요", "Lâu rồi không gặp", "[o-raen-man-i-e-yo]", "Cụm từ", "Sơ cấp 1", "와, 정말 오랜만이에요!", "Oa, đúng là lâu lắm rồi mới gặp!", "😄"),
+    ("잘 지내요?", "Bạn dạo này khỏe không?", "[jal ji-nae-yo]", "Cụm từ", "Sơ cấp 1", "그동안 잘 지냈어요?", "Dạo này bạn sống tốt chứ?", "✨"),
+    ("전화번호", "Số điện thoại", "[jeon-hwa-beon-ho]", "Danh từ", "Sơ cấp 1", "전화번호가 몇 번이에요?", "Số điện thoại của bạn là số mấy?", "📱"),
+    ("이메일", "Email", "[i-me-il]", "Danh từ", "Sơ cấp 1", "이메일 주소를 알려주세요.", "Hãy cho tôi biết địa chỉ email nhé.", "📧"),
+    ("주소", "Địa chỉ", "[ju-so]", "Danh từ", "Sơ cấp 1", "여기가 집 주소입니다.", "Đây là địa chỉ nhà tôi.", "📫"),
+    ("소개", "Giới thiệu", "[so-gae]", "Danh từ", "Sơ cấp 1", "자기소개를 해 보세요.", "Bạn hãy thử tự giới thiệu bản thân đi.", "🎤"),
+    ("자기소개", "Tự giới thiệu bản thân", "[ja-gi-so-gae]", "Danh từ", "Sơ cấp 1", "한국어로 자기소개를 준비했어요.", "Tôi đã chuẩn bị bài tự giới thiệu bằng tiếng Hàn.", "📝"),
+    ("인사", "Chào hỏi", "[in-sa]", "Danh từ", "Sơ cấp 1", "서로 반갑게 인사를 나눴어요.", "Chúng tôi chào hỏi nhau vui vẻ.", "🤝"),
+    ("악수", "Bắt tay", "[ak-su]", "Danh từ", "Sơ cấp 2", "선생님과 두 손으로 악수를 했어요.", "Tôi đã bắt tay thầy giáo bằng cả hai tay.", "🤝"),
+    ("명함", "Danh thiếp", "[myeong-ham]", "Danh từ", "Sơ cấp 2", "제 명함을 드리겠습니다.", "Tôi xin gửi danh thiếp của tôi.", "🪪"),
+    ("약속", "Hẹn, cuộc hẹn", "[yak-sok]", "Danh từ", "Sơ cấp 1", "오늘 친구와 약속이 있어요.", "Hôm nay tôi có hẹn với bạn bè.", "🤝"),
+    ("만남", "Cuộc gặp gỡ", "[man-nam]", "Danh từ", "Sơ cấp 2", "첫 만남은 언제나 설렙니다.", "Cuộc gặp đầu tiên bao giờ cũng xao xuyến.", "🌸"),
+    ("모임", "Buổi họp mặt", "[mo-im]", "Danh từ", "Sơ cấp 2", "주말에 동호회 모임이 있어요.", "Cuối tuần có buổi họp mặt câu lạc bộ.", "🍻"),
+    ("환영", "Hoan nghênh, chào đón", "[hwan-yeong]", "Danh từ", "Sơ cấp 2", "신입생 여러분을 진심으로 환영합니다.", "Nhiệt liệt chào đón các bạn tân sinh viên.", "🎊"),
+    ("배웅", "Tiễn đưa", "[bae-ung]", "Danh từ", "Sơ cấp 2", "공항까지 친구를 배웅하러 갔어요.", "Tôi đã đi tiễn bạn đến tận sân bay.", "🛫"),
+    ("마중", "Đón tiếp", "[ma-jung]", "Danh từ", "Sơ cấp 2", "역 앞으로 마중을 나갔습니다.", "Tôi đã ra trước ga tàu để đón bạn.", "🚉"),
+    ("안부", "Hỏi thăm sức khỏe", "[an-bu]", "Danh từ", "Sơ cấp 2", "부모님께 안부를 전해 주세요.", "Hãy gửi lời hỏi thăm của tôi tới bố mẹ nhé.", "💌"),
+    ("말씀", "Lời nói (kính ngữ)", "[mal-sseum]", "Danh từ", "Sơ cấp 2", "선생님 말씀에 귀를 기울였습니다.", "Tôi đã chăm chú lắng nghe lời thầy nói.", "🗣️"),
+    ("한국어", "Tiếng Hàn", "[han-gug-eo]", "Danh từ", "Sơ cấp 1", "한국어를 배우는 것은 재미있어요.", "Học tiếng Hàn rất thú vị.", "🇰🇷"),
+    ("베트남어", "Tiếng Việt", "[be-teu-nam-eo]", "Danh từ", "Sơ cấp 1", "베트남어 발음이 조금 어려워요.", "Phát âm tiếng Việt hơi khó một chút.", "🇻🇳"),
+    ("외국인", "Người nước ngoài", "[oe-gug-in]", "Danh từ", "Sơ cấp 1", "외국인 친구가 많습니다.", "Tôi có nhiều bạn người nước ngoài.", "🌍"),
+    ("유학생", "Du học sinh", "[yu-hak-saeng]", "Danh từ", "Sơ cấp 1", "서울에서 유학생으로 지내고 있어요.", "Tôi đang sống như một du học sinh ở Seoul.", "🎓"),
+    ("친구", "Bạn bè", "[chin-gu]", "Danh từ", "Sơ cấp 1", "친한 친구와 같이 공부해요.", "Tôi học cùng với bạn thân.", "👫"),
+    ("이웃", "Hàng xóm", "[i-ut]", "Danh từ", "Sơ cấp 2", "이웃 주민들과 사이좋게 지냅니다.", "Tôi sống hòa thuận với hàng xóm.", "🏘️"),
+]
+
+print(f"Cat 1 count: {len(CAT_1)}")

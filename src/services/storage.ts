@@ -198,12 +198,32 @@ class StorageService {
     }
   }
 
-  // ================= VOCABULARY =================
+  // ================= VOCABULARY VALIDATION & SANITIZATION =================
+  private static VOCAB_VERSION = 'v2_1000_pristine';
+
+  public static isValidKoreanVocab(item: any): boolean {
+    if (!item || typeof item !== 'object') return false;
+    const korean = (item.korean || '').trim();
+    const vietnamese = (item.vietnamese || item.meaning || '').trim();
+
+    if (!korean || !vietnamese) return false;
+
+    // Must contain authentic Korean Hangul syllables
+    if (!/[\uac00-\ud7af]/.test(korean)) return false;
+
+    // Must NOT contain corruption markers (e.g. &U, &#, replacement character \uFFFD, or double question marks)
+    const corruptRegex = /(&#|\ufffd|&U|\u0000|\?\?\?)/i;
+    if (corruptRegex.test(korean) || corruptRegex.test(vietnamese)) return false;
+
+    return true;
+  }
 
   private initUserData(userId: string): void {
     const vocabKey = VOCAB_PREFIX + userId;
-    if (!localStorage.getItem(vocabKey)) {
-      localStorage.setItem(vocabKey, JSON.stringify(INITIAL_VOCABULARIES));
+    const versionKey = 'hango_vocab_ver_' + userId;
+
+    if (!localStorage.getItem(vocabKey) || localStorage.getItem(versionKey) !== StorageService.VOCAB_VERSION) {
+      this.healAndMigrate1000Vocab(userId);
     }
 
     const grammarKey = GRAMMAR_PREFIX + userId;
@@ -212,24 +232,127 @@ class StorageService {
     }
   }
 
+  /**
+   * Auto-heals corrupted words, upgrades to 1,000 words, and preserves user learning progress & custom words
+   */
+  public healAndMigrate1000Vocab(userId?: string): VocabularyItem[] {
+    const uid = userId || this.getCurrentUser()?.id || 'guest_demo_user';
+    const vocabKey = VOCAB_PREFIX + uid;
+    const versionKey = 'hango_vocab_ver_' + uid;
+
+    let existingItems: VocabularyItem[] = [];
+    try {
+      const raw = localStorage.getItem(vocabKey);
+      if (raw) {
+        existingItems = JSON.parse(raw);
+      }
+    } catch {
+      existingItems = [];
+    }
+
+    // Map user study status by clean Korean word
+    const userProgressMap = new Map<string, Partial<VocabularyItem>>();
+    const customValidWords: VocabularyItem[] = [];
+
+    if (Array.isArray(existingItems)) {
+      for (const item of existingItems) {
+        if (!StorageService.isValidKoreanVocab(item)) continue;
+
+        const kKey = item.korean.trim();
+        userProgressMap.set(kKey, {
+          isLearned: item.isLearned,
+          isFavorite: item.isFavorite,
+          reviewCount: item.reviewCount,
+          lastReviewedAt: item.lastReviewedAt,
+          lastReviewResult: item.lastReviewResult,
+          correctCount: item.correctCount,
+          incorrectCount: item.incorrectCount,
+          srsStage: item.srsStage,
+          srsEaseFactor: item.srsEaseFactor,
+          srsIntervalDays: item.srsIntervalDays,
+          srsRepetitions: item.srsRepetitions,
+          nextReviewDate: item.nextReviewDate,
+          customScheduledDate: item.customScheduledDate,
+        });
+
+        if (item.isCustom) {
+          customValidWords.push(item);
+        }
+      }
+    }
+
+    // Build the clean 1,000 vocabulary set with user progress mapped
+    const healedList: VocabularyItem[] = INITIAL_VOCABULARIES.map((initItem) => {
+      const progress = userProgressMap.get(initItem.korean.trim());
+      if (progress) {
+        return {
+          ...initItem,
+          isLearned: progress.isLearned ?? initItem.isLearned,
+          isFavorite: progress.isFavorite ?? initItem.isFavorite,
+          reviewCount: progress.reviewCount ?? initItem.reviewCount,
+          lastReviewedAt: progress.lastReviewedAt ?? initItem.lastReviewedAt,
+          lastReviewResult: progress.lastReviewResult ?? initItem.lastReviewResult,
+          correctCount: progress.correctCount ?? initItem.correctCount,
+          incorrectCount: progress.incorrectCount ?? initItem.incorrectCount,
+          srsStage: progress.srsStage ?? initItem.srsStage,
+          srsEaseFactor: progress.srsEaseFactor ?? initItem.srsEaseFactor,
+          srsIntervalDays: progress.srsIntervalDays ?? initItem.srsIntervalDays,
+          srsRepetitions: progress.srsRepetitions ?? initItem.srsRepetitions,
+          nextReviewDate: progress.nextReviewDate ?? initItem.nextReviewDate,
+          customScheduledDate: progress.customScheduledDate ?? initItem.customScheduledDate,
+        };
+      }
+      return { ...initItem };
+    });
+
+    // Append any valid custom words user created
+    const existingKoreanSet = new Set(healedList.map((v) => v.korean.trim()));
+    for (const customItem of customValidWords) {
+      if (!existingKoreanSet.has(customItem.korean.trim())) {
+        healedList.push(customItem);
+        existingKoreanSet.add(customItem.korean.trim());
+      }
+    }
+
+    localStorage.setItem(vocabKey, JSON.stringify(healedList));
+    localStorage.setItem(versionKey, StorageService.VOCAB_VERSION);
+    return healedList;
+  }
+
   public getVocabularies(userId?: string): VocabularyItem[] {
     const uid = userId || this.getCurrentUser()?.id || 'guest_demo_user';
     const key = VOCAB_PREFIX + uid;
+    const versionKey = 'hango_vocab_ver_' + uid;
+
     try {
       const data = localStorage.getItem(key);
-      if (!data) {
-        localStorage.setItem(key, JSON.stringify(INITIAL_VOCABULARIES));
-        return INITIAL_VOCABULARIES;
+      const currentVer = localStorage.getItem(versionKey);
+
+      if (!data || currentVer !== StorageService.VOCAB_VERSION) {
+        return this.healAndMigrate1000Vocab(uid);
       }
-      return JSON.parse(data);
+
+      const parsed: VocabularyItem[] = JSON.parse(data);
+      if (!Array.isArray(parsed) || parsed.length < 1000) {
+        return this.healAndMigrate1000Vocab(uid);
+      }
+
+      // Quick sanity check on the first few and sample items
+      const hasCorrupt = parsed.slice(0, 50).some((item) => !StorageService.isValidKoreanVocab(item));
+      if (hasCorrupt) {
+        return this.healAndMigrate1000Vocab(uid);
+      }
+
+      return parsed;
     } catch {
-      return INITIAL_VOCABULARIES;
+      return this.healAndMigrate1000Vocab(uid);
     }
   }
 
   public saveVocabularies(items: VocabularyItem[], userId?: string): void {
     const uid = userId || this.getCurrentUser()?.id || 'guest_demo_user';
     localStorage.setItem(VOCAB_PREFIX + uid, JSON.stringify(items));
+    localStorage.setItem('hango_vocab_ver_' + uid, StorageService.VOCAB_VERSION);
   }
 
   public addVocabulary(

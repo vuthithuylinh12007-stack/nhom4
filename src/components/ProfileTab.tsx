@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { User } from '../types';
 import { storageService } from '../services/storage';
+import { soundEffects } from '../services/soundEffects';
 import {
   User as UserIcon,
   LogOut,
@@ -15,6 +16,9 @@ import {
   Check,
   X,
   FileCode,
+  Volume2,
+  VolumeX,
+  Star,
 } from 'lucide-react';
 
 interface ProfileTabProps {
@@ -202,8 +206,82 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
         </div>
       </div>
 
+      {/* Cute Achievement Badges (Bảng huy hiệu Hango PRO) */}
+      <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 shadow-sm space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+            <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+            <span>Huy hiệu học tập đạt được</span>
+          </h3>
+          <span className="text-[10px] font-bold text-amber-600 bg-amber-50 dark:bg-amber-950 px-2 py-0.5 rounded-full">
+            Mở khóa thành tích
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2.5 text-xs">
+          {/* Badge 1 */}
+          <div className="p-3 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/40 flex items-center gap-2.5">
+            <span className="text-2xl">🔥</span>
+            <div>
+              <p className="font-extrabold text-slate-900 dark:text-white leading-tight">Chăm chỉ</p>
+              <p className="text-[10px] text-amber-700 dark:text-amber-400">Chuỗi {stats.streakDays} ngày học</p>
+            </div>
+          </div>
+
+          {/* Badge 2 */}
+          <div className="p-3 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-900/40 flex items-center gap-2.5">
+            <span className="text-2xl">📚</span>
+            <div>
+              <p className="font-extrabold text-slate-900 dark:text-white leading-tight">Thông thái</p>
+              <p className="text-[10px] text-emerald-700 dark:text-emerald-400">Thuộc {stats.learnedWords} từ vựng</p>
+            </div>
+          </div>
+
+          {/* Badge 3 */}
+          <div className="p-3 rounded-2xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-900/40 flex items-center gap-2.5">
+            <span className="text-2xl">🎮</span>
+            <div>
+              <p className="font-extrabold text-slate-900 dark:text-white leading-tight">Ghép từ</p>
+              <p className="text-[10px] text-blue-700 dark:text-blue-400">Cao thủ hình ảnh</p>
+            </div>
+          </div>
+
+          {/* Badge 4 */}
+          <div className="p-3 rounded-2xl bg-purple-50/70 dark:bg-purple-950/30 border border-purple-200/80 dark:border-purple-900/40 flex items-center gap-2.5">
+            <span className="text-2xl">🎓</span>
+            <div>
+              <p className="font-extrabold text-slate-900 dark:text-white leading-tight">Ngữ pháp</p>
+              <p className="text-[10px] text-purple-700 dark:text-purple-400">{stats.completedGrammars} bài xong</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Menu Options & University Presentation Guides */}
       <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-2 shadow-sm divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+        {/* Sound toggle item */}
+        <div className="flex items-center justify-between p-3.5">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950 text-purple-600 flex items-center justify-center">
+              <Volume2 className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="font-bold text-slate-800 dark:text-slate-200">
+                Âm thanh trò chơi & thông báo
+              </span>
+              <p className="text-[11px] text-slate-500">Bật hiệu ứng âm thanh sống động</p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              soundEffects.toggleSound();
+            }}
+            className="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 transition"
+          >
+            {soundEffects.isEnabled() ? 'Bật 🔊' : 'Tắt 🔇'}
+          </button>
+        </div>
+
         {/* CSV & JSON Import / Export */}
         <button
           onClick={onOpenImportExport}

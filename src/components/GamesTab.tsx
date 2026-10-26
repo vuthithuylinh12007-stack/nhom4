@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { VocabularyItem, GameScoreRecord } from '../types';
 import { storageService } from '../services/storage';
 import { ttsService } from '../services/tts';
+import { PictureMatchingGame } from './games/PictureMatchingGame';
 import confetti from 'canvas-confetti';
 import {
   Gamepad2,
@@ -15,9 +16,12 @@ import {
   ArrowRight,
   Flame,
   Volume2,
+  Layers,
 } from 'lucide-react';
 
 export const GamesTab: React.FC = () => {
+  // Default to the flagship 'picture' matching game mode requested by user
+  const [gameMode, setGameMode] = useState<'picture' | 'miniGames'>('picture');
   const [activeGame, setActiveGame] = useState<'menu' | 'quiz' | 'matching' | 'fill' | 'blitz'>('menu');
   const [vocabs, setVocabs] = useState<VocabularyItem[]>(() => storageService.getVocabularies());
   const [gameHistory, setGameHistory] = useState<GameScoreRecord[]>(() => storageService.getGameScores());
@@ -324,24 +328,89 @@ export const GamesTab: React.FC = () => {
   }, [isBlitzFinished]);
 
   return (
-    <div className="space-y-5 pb-24 pt-2">
-      {/* Menu / Game Hub */}
-      {activeGame === 'menu' && (
-        <div className="space-y-4 animate-in fade-in duration-200">
-          <div className="rounded-3xl bg-gradient-to-br from-indigo-600 via-blue-600 to-slate-900 p-6 text-white shadow-xl shadow-blue-500/15">
-            <div className="flex items-center gap-3 mb-2">
-              <span className="p-3 rounded-2xl bg-white/10 backdrop-blur-md text-2xl">🎮</span>
-              <div>
-                <h2 className="text-lg font-bold">Đấu trường trò chơi HanGo</h2>
-                <p className="text-xs text-blue-100">
-                  Luyện phản xạ từ vựng, ghi nhớ lâu và tích lũy điểm thưởng!
-                </p>
-              </div>
-            </div>
-          </div>
+    <div className="space-y-4 pb-24 pt-2">
+      {/* Top Game Mode Segmented Switcher */}
+      <div className="flex items-center p-1 rounded-2xl bg-slate-200/80 dark:bg-slate-800/80 max-w-md mx-auto">
+        <button
+          onClick={() => {
+            setGameMode('picture');
+            setActiveGame('menu');
+          }}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-black transition cursor-pointer select-none ${
+            gameMode === 'picture'
+              ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+          }`}
+        >
+          <span className="text-sm">🖼️</span>
+          <span>Ghép từ qua hình ảnh</span>
+        </button>
 
-          {/* 4 Games Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        <button
+          onClick={() => setGameMode('miniGames')}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-black transition cursor-pointer select-none ${
+            gameMode === 'miniGames'
+              ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+          }`}
+        >
+          <span className="text-sm">🎮</span>
+          <span>Mini-game khác</span>
+        </button>
+      </div>
+
+      {/* MODE 1: PICTURE MATCHING GAME */}
+      {gameMode === 'picture' && (
+        <PictureMatchingGame onBackToMenu={() => setGameMode('miniGames')} />
+      )}
+
+      {/* MODE 2: CLASSIC MINI GAMES */}
+      {gameMode === 'miniGames' && (
+        <div className="space-y-4">
+          {/* Menu / Game Hub */}
+          {activeGame === 'menu' && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              <div className="rounded-3xl bg-gradient-to-br from-indigo-600 via-blue-600 to-slate-900 p-6 text-white shadow-xl shadow-blue-500/15">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-3">
+                    <span className="p-3 rounded-2xl bg-white/10 backdrop-blur-md text-2xl">🎮</span>
+                    <div>
+                      <h2 className="text-lg font-bold">Đấu trường trò chơi HanGo</h2>
+                      <p className="text-xs text-blue-100">
+                        Luyện phản xạ từ vựng, ghi nhớ lâu và tích lũy điểm thưởng!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Featured Banner to Switch back to Picture Matching Game */}
+              <div
+                onClick={() => setGameMode('picture')}
+                className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-slate-950 shadow-md hover:shadow-lg transition active:scale-98 cursor-pointer flex items-center justify-between gap-3 select-none"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">🖼️</span>
+                  <div>
+                    <span className="px-2 py-0.5 rounded-full bg-slate-950 text-amber-300 font-black text-[9px] uppercase tracking-wider">
+                      Mới & Nổi bật
+                    </span>
+                    <h3 className="font-black text-sm sm:text-base text-slate-950 mt-0.5">
+                      Ghép từ qua hình ảnh (10 Chủ đề)
+                    </h3>
+                    <p className="text-xs text-slate-800 font-medium">
+                      Chạm bộ 3: Hình ảnh + Từ tiếng Hàn + Nghĩa tiếng Việt
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 font-black text-xs text-slate-950 bg-white/40 px-3 py-1.5 rounded-xl shrink-0">
+                  <span>Chơi ngay</span>
+                  <ArrowRight className="w-4 h-4" />
+                </div>
+              </div>
+
+              {/* 4 Games Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             {/* Game 1 */}
             <div
               onClick={() => {
@@ -796,6 +865,8 @@ export const GamesTab: React.FC = () => {
               </div>
             </div>
           )}
+        </div>
+      )}
         </div>
       )}
     </div>
