@@ -6,7 +6,6 @@ import { BottomNavigation, MainTabType } from './components/BottomNavigation';
 import { HomeTab } from './components/HomeTab';
 import { StudyTab } from './components/StudyTab';
 import { GamesTab } from './components/GamesTab';
-import { AIAssistantTab } from './components/AIAssistantTab';
 import { ProfileTab } from './components/ProfileTab';
 import { AuthModal } from './components/AuthModal';
 import { AddEditVocabularyModal } from './components/AddEditVocabularyModal';
@@ -131,8 +130,6 @@ export default function App() {
               )}
 
               {currentTab === 'games' && <GamesTab />}
-
-              {currentTab === 'ai' && <AIAssistantTab />}
 
               {currentTab === 'profile' && (
                 <ProfileTab

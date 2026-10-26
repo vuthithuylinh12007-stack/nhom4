@@ -19,7 +19,7 @@ import {
 
 interface HomeTabProps {
   user: User;
-  onNavigate: (tab: 'study' | 'games' | 'ai' | 'profile', subTab?: string) => void;
+  onNavigate: (tab: 'study' | 'games' | 'profile', subTab?: string) => void;
   onOpenAddModal: () => void;
 }
 
@@ -314,21 +314,21 @@ export const HomeTab: React.FC<HomeTabProps> = ({ user, onNavigate, onOpenAddMod
             <ArrowRight className="w-4 h-4 text-purple-600 dark:text-purple-400 group-hover:translate-x-1 transition" />
           </button>
 
-          {/* Action 4: Trợ lý AI Gemini */}
+          {/* Action 4: Luyện phát âm giọng nói */}
           <button
-            onClick={() => onNavigate('ai')}
+            onClick={() => onNavigate('study', 'vocab')}
             className="flex items-center justify-between p-4 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-slate-800 dark:to-slate-800/60 border border-emerald-200/70 dark:border-slate-700 text-left hover:shadow-md transition active:scale-98 cursor-pointer group"
           >
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-lg shadow-md shadow-emerald-500/20 group-hover:scale-105 transition">
-                🤖
+                🎙️
               </div>
               <div>
                 <h3 className="font-bold text-sm text-slate-900 dark:text-white">
-                  Gia sư AI HanGo thông minh
+                  Luyện phát âm giọng nói
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Sửa mọi loại câu 9 phần • Ngữ pháp • Dịch thuật
+                  Thu âm kiểm tra phát âm chuẩn • Web Speech API
                 </p>
               </div>
             </div>

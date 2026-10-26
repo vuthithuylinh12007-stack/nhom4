@@ -1,7 +1,7 @@
 import React from 'react';
-import { Home, BookOpen, Gamepad2, Bot, User } from 'lucide-react';
+import { Home, BookOpen, Gamepad2, User } from 'lucide-react';
 
-export type MainTabType = 'home' | 'study' | 'games' | 'ai' | 'profile';
+export type MainTabType = 'home' | 'study' | 'games' | 'profile';
 
 interface BottomNavigationProps {
   currentTab: MainTabType;
@@ -24,12 +24,6 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({ currentTab, 
       id: 'games' as MainTabType,
       label: 'Trò chơi',
       icon: Gamepad2,
-    },
-    {
-      id: 'ai' as MainTabType,
-      label: 'AI HanGo',
-      icon: Bot,
-      highlight: true,
     },
     {
       id: 'profile' as MainTabType,
@@ -64,9 +58,6 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({ currentTab, 
                 }`}
               >
                 <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
-                {tab.highlight && !isActive && (
-                  <span className="absolute top-1 right-2 w-2 h-2 rounded-full bg-pink-500 animate-ping" />
-                )}
               </div>
               <span className="text-[11px] mt-0.5 tracking-tight">{tab.label}</span>
             </button>
