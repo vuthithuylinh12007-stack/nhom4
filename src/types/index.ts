@@ -1,4 +1,4 @@
-export type WordType = 'Danh từ' | 'Động từ' | 'Tính từ' | 'Phó từ' | 'Trợ từ' | 'Đại từ' | 'Cụm từ' | 'Khác';
+export type WordType = 'Danh từ' | 'Động từ' | 'Tính từ' | 'Phó từ' | 'Trợ từ' | 'Đại từ' | 'Số từ' | 'Cụm từ' | 'Khác';
 
 export type WordLevel = 'Sơ cấp 1' | 'Sơ cấp 2' | 'Trung cấp' | 'Nâng cao';
 

@@ -16,7 +16,6 @@ import { DeleteConfirmModal } from './DeleteConfirmModal';
 import { ScheduleReviewModal } from './ScheduleReviewModal';
 import { TopikExamModal } from './TopikExamModal';
 import { speechRecognitionService, SpeechEvaluationResult } from '../services/speechRecognition';
-import { CustomVocabFileModal } from './CustomVocabFileModal';
 import confetti from 'canvas-confetti';
 import { HangoMascot } from './games/HangoMascot';
 import { soundEffects } from '../services/soundEffects';
@@ -50,10 +49,9 @@ import {
 
 interface StudyTabProps {
   initialSubTab?: string;
-  onOpenImportExport: () => void;
 }
 
-export const StudyTab: React.FC<StudyTabProps> = ({ initialSubTab = 'vocab', onOpenImportExport }) => {
+export const StudyTab: React.FC<StudyTabProps> = ({ initialSubTab = 'vocab' }) => {
   const [subTab, setSubTab] = useState<'vocab' | 'grammar' | 'dialogue' | 'flashcard' | 'quiz'>(
     (initialSubTab as any) || 'vocab'
   );
@@ -109,9 +107,6 @@ export const StudyTab: React.FC<StudyTabProps> = ({ initialSubTab = 'vocab', onO
   const [quizCurrentIdx, setQuizCurrentIdx] = useState(0);
   const [quizUserAnswers, setQuizUserAnswers] = useState<number[]>([]);
   const [quizTimeLeft, setQuizTimeLeft] = useState(300);
-
-  // Custom Vocab File Modal state
-  const [isCustomVocabFileModalOpen, setIsCustomVocabFileModalOpen] = useState(false);
 
   // Speech Recognition Pronunciation Check states
   const [activeRecordingWordId, setActiveRecordingWordId] = useState<string | null>(null);
@@ -465,16 +460,6 @@ export const StudyTab: React.FC<StudyTabProps> = ({ initialSubTab = 'vocab', onO
             {/* Action buttons */}
             <div className="flex items-center gap-2">
               <button
-                type="button"
-                onClick={() => setIsCustomVocabFileModalOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-95 text-xs font-bold text-white shadow-md shadow-emerald-600/20 transition cursor-pointer"
-                title="Tải tệp từ vựng (.txt, .csv, .json) để tạo list học Flashcard"
-              >
-                <Layers className="w-4 h-4" />
-                <span>+ Thêm tệp Flashcard</span>
-              </button>
-
-              <button
                 onClick={() => {
                   setEditingItem(null);
                   setIsAddEditOpen(true);
@@ -483,14 +468,6 @@ export const StudyTab: React.FC<StudyTabProps> = ({ initialSubTab = 'vocab', onO
               >
                 <Plus className="w-4 h-4" />
                 <span>+ Thêm từ</span>
-              </button>
-
-              <button
-                onClick={onOpenImportExport}
-                className="flex items-center gap-1.5 px-3 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-sm transition"
-                title="Nhập xuất file CSV / JSON"
-              >
-                <span>CSV/JSON</span>
               </button>
             </div>
           </div>
@@ -1079,16 +1056,8 @@ export const StudyTab: React.FC<StudyTabProps> = ({ initialSubTab = 'vocab', onO
               </div>
             </div>
 
-            {/* Sub info & Add File Shortcut */}
-            <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px]">
-              <button
-                type="button"
-                onClick={() => setIsCustomVocabFileModalOpen(true)}
-                className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold hover:underline cursor-pointer"
-              >
-                <Layers className="w-3.5 h-3.5" />
-                <span>+ Thêm tệp Flashcard</span>
-              </button>
+            {/* Sub info & Schedule Shortcut */}
+            <div className="flex items-center justify-end pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px]">
               <button
                 type="button"
                 onClick={() => handleOpenScheduleCategory(selectedCategoryId && selectedCategoryId !== 15 ? selectedCategoryId : 1)}
@@ -2089,18 +2058,6 @@ export const StudyTab: React.FC<StudyTabProps> = ({ initialSubTab = 'vocab', onO
         initialTypeId={topikExamInitialType}
       />
 
-      {/* Custom Vocab File Import Modal for Flashcard Study */}
-      <CustomVocabFileModal
-        isOpen={isCustomVocabFileModalOpen}
-        onClose={() => setIsCustomVocabFileModalOpen(false)}
-        onImportAndStartFlashcard={(_importedItems) => {
-          refreshVocabs();
-          setSelectedCategoryId(16);
-          setSubTab('flashcard');
-          setFlashcardIndex(0);
-          setIsCardFlipped(false);
-        }}
-      />
     </div>
   );
 };

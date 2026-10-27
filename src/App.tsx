@@ -9,7 +9,6 @@ import { GamesTab } from './components/GamesTab';
 import { ProfileTab } from './components/ProfileTab';
 import { AuthModal } from './components/AuthModal';
 import { AddEditVocabularyModal } from './components/AddEditVocabularyModal';
-import { ImportExportModal } from './components/ImportExportModal';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { Wifi, Battery, Signal } from 'lucide-react';
 
@@ -33,7 +32,6 @@ export default function App() {
 
   // Global Modals
   const [isAddVocabModalOpen, setIsAddVocabModalOpen] = useState(false);
-  const [isImportExportModalOpen, setIsImportExportModalOpen] = useState(false);
 
   // Sync dark mode class
   useEffect(() => {
@@ -125,7 +123,6 @@ export default function App() {
               {currentTab === 'study' && (
                 <StudyTab
                   initialSubTab={studySubTab}
-                  onOpenImportExport={() => setIsImportExportModalOpen(true)}
                 />
               )}
 
@@ -136,7 +133,6 @@ export default function App() {
                   user={currentUser}
                   onUserUpdated={(updated) => setCurrentUser(updated)}
                   onLogout={() => setCurrentUser(null)}
-                  onOpenImportExport={() => setIsImportExportModalOpen(true)}
                 />
               )}
             </>
@@ -161,15 +157,6 @@ export default function App() {
         onClose={() => setIsAddVocabModalOpen(false)}
         onSaved={() => {
           // Trigger any needed updates
-        }}
-      />
-
-      {/* Global Import / Export Modal */}
-      <ImportExportModal
-        isOpen={isImportExportModalOpen}
-        onClose={() => setIsImportExportModalOpen(false)}
-        onImportComplete={() => {
-          // Data updated
         }}
       />
     </div>

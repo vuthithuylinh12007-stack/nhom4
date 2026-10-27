@@ -5,8 +5,6 @@ import { soundEffects } from '../services/soundEffects';
 import {
   User as UserIcon,
   LogOut,
-  Download,
-  Upload,
   Smartphone,
   ShieldCheck,
   Flame,
@@ -25,14 +23,12 @@ interface ProfileTabProps {
   user: User;
   onUserUpdated: (user: User) => void;
   onLogout: () => void;
-  onOpenImportExport: () => void;
 }
 
 export const ProfileTab: React.FC<ProfileTabProps> = ({
   user,
   onUserUpdated,
   onLogout,
-  onOpenImportExport,
 }) => {
   const stats = storageService.getDashboardStats();
 
@@ -281,25 +277,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
             {soundEffects.isEnabled() ? 'Bật 🔊' : 'Tắt 🔇'}
           </button>
         </div>
-
-        {/* CSV & JSON Import / Export */}
-        <button
-          onClick={onOpenImportExport}
-          className="w-full flex items-center justify-between p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-2xl transition text-left cursor-pointer"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950 text-blue-600 flex items-center justify-center">
-              <Download className="w-4 h-4" />
-            </div>
-            <div>
-              <span className="font-bold text-slate-800 dark:text-slate-200">
-                Nhập & Xuất từ vựng (CSV / JSON)
-              </span>
-              <p className="text-[11px] text-slate-500">Sao lưu, phục hồi và tải file về máy</p>
-            </div>
-          </div>
-          <span className="text-slate-400">→</span>
-        </button>
 
         {/* Android Native & APK Guide for University Presentation */}
         <button
